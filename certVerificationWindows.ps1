@@ -1,21 +1,18 @@
 
-$Path = "D:\PaymentService\Logs\ExpiringCertificates-Monitoring.log"
+$Path = "D:\ExpiringCertificates-Monitoring.log"
 
 $certs = Get-ChildItem CERT:LocalMachine -Recurse |
   Where-Object { $null -ne $_.NotAfter } |
   Where-Object { $null -ne $_.DnsNameList } 
-
-
+ 
 $list = $certs | Sort-Object NotAfter | 
-Select-Object @{Name = "ValidTo"; Expression = { $_.NotAfter.ToShortDateString() } }, 
+Select-Object @{Name = "ComputerName"; Expression = { $_.PSComputerName } },
+@{Name = "FileName"; Expression = { "" } },
+@{Name = "ValidTo"; Expression = { $_.NotAfter.ToShortDateString() } }, 
 @{Name = "ValidFrom"; Expression = { $_.NotBefore.ToShortDateString() } },
-@{Name = "ComputerName"; Expression = { $_.PSComputerName } },
 Issuer, 
 @{Name = "DnsName"; Expression = { $_.DnsNameList.Unicode } } 
 
-Clear-Content $Path
-
-Foreach ($v in $list) {
-  ($v | ConvertTo-Json).Replace("`n", '') | Out-File -Append $Path
-} 
+$list | Export-Csv -Delimiter '|' -NoTypeInformation -Path "$Path+header"
  
+(Get-Content "$Path+header" | Select-Object -Skip 1) | Set-Content $Path 
